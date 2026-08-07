@@ -1,0 +1,70 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package com.mycompany.papermanager;
+import javax.swing.*;
+import java.awt.*;
+
+/**
+ * Read-only dialog showing the full details of a single paper.
+ */
+public class PaperDetailsForm extends JDialog {
+
+    public PaperDetailsForm(JFrame parent, Paper paper) {
+        super(parent, "Paper Details", true);
+        setSize(480, 420);
+        setLocationRelativeTo(parent);
+        setLayout(new BorderLayout(10, 10));
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        int row = 0;
+        addField(panel, gbc, row++, "Title:", paper.getTitle());
+        addField(panel, gbc, row++, "Author:", paper.getAuthor());
+        addField(panel, gbc, row++, "Year:", paper.getYear());
+        addField(panel, gbc, row++, "Category:", paper.getCategory());
+        addField(panel, gbc, row++, "Date Added:", paper.getDateAdded());
+        addField(panel, gbc, row++, "PDF Attached:", paper.hasPdf() ? "Yes" : "No");
+
+        gbc.gridx = 0; gbc.gridy = row;
+        panel.add(new JLabel("Abstract:"), gbc);
+        JTextArea abstractArea = new JTextArea(
+                paper.getAbstractText() == null || paper.getAbstractText().isEmpty()
+                        ? "(no abstract provided)" : paper.getAbstractText());
+        abstractArea.setLineWrap(true);
+        abstractArea.setWrapStyleWord(true);
+        abstractArea.setEditable(false);
+        abstractArea.setBackground(panel.getBackground());
+        gbc.gridy = row + 1;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1; gbc.weighty = 1;
+        gbc.fill = GridBagConstraints.BOTH;
+        panel.add(new JScrollPane(abstractArea), gbc);
+
+        JButton closeBtn = new JButton("Close");
+        closeBtn.addActionListener(e -> dispose());
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        bottomPanel.add(closeBtn);
+
+        add(panel, BorderLayout.CENTER);
+        add(bottomPanel, BorderLayout.SOUTH);
+    }
+
+    private void addField(JPanel panel, GridBagConstraints gbc, int row, String label, String value) {
+        gbc.gridwidth = 1;
+        gbc.weightx = 0; gbc.weighty = 0;
+        gbc.gridx = 0; gbc.gridy = row;
+        JLabel labelComp = new JLabel(label);
+        labelComp.setFont(labelComp.getFont().deriveFont(Font.BOLD));
+        panel.add(labelComp, gbc);
+
+        gbc.gridx = 1; gbc.gridy = row;
+        panel.add(new JLabel(value == null || value.isEmpty() ? "-" : value), gbc);
+    }
+}
