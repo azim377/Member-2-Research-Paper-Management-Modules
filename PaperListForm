@@ -1,3 +1,4 @@
+
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
@@ -11,12 +12,6 @@ import java.awt.event.*;
 import java.awt.geom.*;
 import java.util.List;
 
-/**
- * Main GUI window: sidebar navigation + a styled table of papers.
- * Each row has View / Edit / Delete icon buttons in the Actions column.
- * Icons are drawn as vector graphics (not text glyphs) so they render
- * consistently regardless of the system font.
- */
 public class PaperListForm extends JFrame {
 
     private static final Color SIDEBAR_BG = new Color(0x14, 0x22, 0x3D);
@@ -27,7 +22,6 @@ public class PaperListForm extends JFrame {
     private static final Color ROW_ALT_BG = new Color(0xFA, 0xFB, 0xFD);
     private static final Color TEXT_DARK = new Color(0x1A, 0x22, 0x33);
     private static final Color TEXT_MUTED = new Color(0x8A, 0x93, 0xA6);
-    private static final Color NAV_TEXT = new Color(0xC7, 0xD0, 0xE0);
     private static final Color VIEW_COLOR = new Color(0x2F, 0x6F, 0xED);
     private static final Color EDIT_COLOR = new Color(0xE8, 0xA2, 0x3A);
     private static final Color DELETE_COLOR = new Color(0xE0, 0x4F, 0x4F);
@@ -94,8 +88,6 @@ public class PaperListForm extends JFrame {
         refreshTable();
     }
 
-    // ---------- Sidebar ----------
-
     private JPanel buildSidebar() {
         JPanel sidebar = new JPanel();
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
@@ -105,12 +97,12 @@ public class PaperListForm extends JFrame {
 
         sidebar.add(buildProfileBlock());
         sidebar.add(Box.createVerticalStrut(20));
-        sidebar.add(buildNavButton("list", "Paper List", true, this::refreshTable));
-        sidebar.add(buildNavButton("plus", "Add Paper", false, this::onAdd));
-        sidebar.add(buildNavButton("edit", "Edit Paper", false, this::onEdit));
-        sidebar.add(buildNavButton("trash", "Delete Paper", false, this::onDelete));
-        sidebar.add(buildNavButton("search", "View Paper Details", false, this::onViewDetails));
-        sidebar.add(buildNavButton("doc", "Open PDF", false, this::onOpenPdf));
+        sidebar.add(buildNavButton("Paper List", true, this::refreshTable));
+        sidebar.add(buildNavButton("Add Paper", false, this::onAdd));
+        sidebar.add(buildNavButton("Edit Paper", false, this::onEdit));
+        sidebar.add(buildNavButton("Delete Paper", false, this::onDelete));
+        sidebar.add(buildNavButton("View Paper Details", false, this::onViewDetails));
+        sidebar.add(buildNavButton("Open PDF", false, this::onOpenPdf));
         sidebar.add(Box.createVerticalGlue());
 
         JSeparator sep = new JSeparator();
@@ -118,7 +110,7 @@ public class PaperListForm extends JFrame {
         sep.setMaximumSize(new Dimension(1000, 1));
         sidebar.add(sep);
         sidebar.add(Box.createVerticalStrut(10));
-        sidebar.add(buildNavButton("power", "Logout", false, this::onLogout));
+        sidebar.add(buildNavButton("Logout", false, this::onLogout));
 
         return sidebar;
     }
@@ -167,26 +159,22 @@ public class PaperListForm extends JFrame {
         return panel;
     }
 
-    private JButton buildNavButton(String iconType, String text, boolean selected, Runnable action) {
-        JButton btn = new JButton(text);
-        btn.setIcon(new VectorIcon(iconType, 16, selected ? Color.WHITE : NAV_TEXT));
-        btn.setIconTextGap(12);
+    private JButton buildNavButton(String text, boolean selected, Runnable action) {
+        JButton btn = new JButton("   " + text);
         btn.setAlignmentX(Component.LEFT_ALIGNMENT);
         btn.setMaximumSize(new Dimension(1000, 42));
         btn.setHorizontalAlignment(SwingConstants.LEFT);
         btn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
-        btn.setContentAreaFilled(true);
         btn.setOpaque(true);
-        btn.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 20));
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         if (selected) {
             btn.setBackground(SIDEBAR_SELECTED);
             btn.setForeground(Color.WHITE);
         } else {
             btn.setBackground(SIDEBAR_BG);
-            btn.setForeground(NAV_TEXT);
+            btn.setForeground(new Color(0xC7, 0xD0, 0xE0));
         }
         btn.addActionListener(e -> action.run());
         return btn;
@@ -200,8 +188,6 @@ public class PaperListForm extends JFrame {
             System.exit(0);
         }
     }
-
-    // ---------- Content area ----------
 
     private JPanel buildContent() {
         JPanel wrapper = new JPanel(new BorderLayout());
@@ -223,10 +209,7 @@ public class PaperListForm extends JFrame {
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setForeground(TEXT_DARK);
 
-        RoundedButton addBtn = new RoundedButton("+  Add New Paper", ACCENT_BLUE, Color.WHITE, 8);
-        addBtn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        addBtn.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        addBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        SolidButton addBtn = new SolidButton("+   Add New Paper", ACCENT_BLUE, Color.WHITE);
         addBtn.addActionListener(e -> onAdd());
 
         header.add(title, BorderLayout.WEST);
@@ -243,8 +226,6 @@ public class PaperListForm extends JFrame {
         footer.add(totalLabel, BorderLayout.WEST);
         return footer;
     }
-
-    // ---------- Table logic ----------
 
     private void refreshTable() {
         tableModel.setRowCount(0);
@@ -343,8 +324,6 @@ public class PaperListForm extends JFrame {
                 "No Paper Selected", JOptionPane.WARNING_MESSAGE);
     }
 
-    // ---------- Striped row renderer for normal columns ----------
-
     private class StripedCellRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected,
@@ -359,30 +338,109 @@ public class PaperListForm extends JFrame {
         }
     }
 
-    // ---------- Actions column: view / edit / delete icon buttons ----------
+    private static class SolidButton extends JButton {
+        private final Color fill;
+
+        SolidButton(String text, Color fill, Color textColor) {
+            super(text);
+            this.fill = fill;
+            setForeground(textColor);
+            setFont(new Font("Segoe UI", Font.BOLD, 13));
+            setContentAreaFilled(false);
+            setFocusPainted(false);
+            setBorderPainted(false);
+            setBorder(BorderFactory.createEmptyBorder(10, 18, 10, 18));
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(fill);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    private enum IconType { VIEW, EDIT, DELETE }
+
+    private static class IconButton extends JButton {
+        private final IconType type;
+        private final Color color;
+
+        IconButton(IconType type, Color color) {
+            this.type = type;
+            this.color = color;
+            setPreferredSize(new Dimension(28, 28));
+            setContentAreaFilled(false);
+            setFocusPainted(false);
+            setBorderPainted(false);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setToolTipText(type == IconType.VIEW ? "View" : type == IconType.EDIT ? "Edit" : "Delete");
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int w = getWidth(), h = getHeight();
+
+            g2.setColor(Color.WHITE);
+            g2.fillOval(1, 1, w - 3, h - 3);
+            g2.setColor(color);
+            g2.setStroke(new BasicStroke(1.3f));
+            g2.drawOval(1, 1, w - 3, h - 3);
+
+            int cx = w / 2, cy = h / 2;
+            g2.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+            switch (type) {
+                case VIEW:
+                    Path2D eye = new Path2D.Double();
+                    eye.moveTo(cx - 6, cy);
+                    eye.quadTo(cx, cy - 5, cx + 6, cy);
+                    eye.quadTo(cx, cy + 5, cx - 6, cy);
+                    eye.closePath();
+                    g2.draw(eye);
+                    g2.fill(new Ellipse2D.Double(cx - 1.4, cy - 1.4, 2.8, 2.8));
+                    break;
+                case EDIT:
+                    g2.draw(new Line2D.Double(cx - 5, cy + 5, cx + 3, cy - 3));
+                    g2.draw(new Line2D.Double(cx + 3, cy - 3, cx + 6, cy - 6));
+                    g2.draw(new Line2D.Double(cx - 6, cy + 6, cx - 5, cy + 5));
+                    break;
+                case DELETE:
+                    g2.draw(new Line2D.Double(cx - 5, cy - 5, cx - 3, cy + 6));
+                    g2.draw(new Line2D.Double(cx - 3, cy + 6, cx + 3, cy + 6));
+                    g2.draw(new Line2D.Double(cx + 3, cy + 6, cx + 5, cy - 5));
+                    g2.draw(new Line2D.Double(cx - 6, cy - 5, cx + 6, cy - 5));
+                    g2.draw(new Line2D.Double(cx - 2, cy - 5, cx - 1, cy - 7));
+                    g2.draw(new Line2D.Double(cx - 1, cy - 7, cx + 1, cy - 7));
+                    g2.draw(new Line2D.Double(cx + 1, cy - 7, cx + 2, cy - 5));
+                    break;
+            }
+            g2.dispose();
+        }
+    }
 
     private class ActionsPanelFactory {
         JPanel createPanel(ActionListener onView, ActionListener onEdit, ActionListener onDelete) {
             JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 2));
             panel.setOpaque(false);
-            panel.add(iconButton("eye", VIEW_COLOR, onView));
-            panel.add(iconButton("edit", EDIT_COLOR, onEdit));
-            panel.add(iconButton("trash", DELETE_COLOR, onDelete));
-            return panel;
-        }
 
-        private JButton iconButton(String type, Color color, ActionListener listener) {
-            JButton btn = new JButton();
-            btn.setIcon(new VectorIcon(type, 14, color));
-            btn.setBackground(Color.WHITE);
-            btn.setFocusPainted(false);
-            btn.setContentAreaFilled(true);
-            btn.setOpaque(true);
-            btn.setBorder(new LineBorder(color, 1, true));
-            btn.setPreferredSize(new Dimension(28, 28));
-            btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            btn.addActionListener(listener);
-            return btn;
+            IconButton viewBtn = new IconButton(IconType.VIEW, VIEW_COLOR);
+            viewBtn.addActionListener(onView);
+            IconButton editBtn = new IconButton(IconType.EDIT, EDIT_COLOR);
+            editBtn.addActionListener(onEdit);
+            IconButton deleteBtn = new IconButton(IconType.DELETE, DELETE_COLOR);
+            deleteBtn.addActionListener(onDelete);
+
+            panel.add(viewBtn);
+            panel.add(editBtn);
+            panel.add(deleteBtn);
+            return panel;
         }
     }
 
@@ -426,115 +484,6 @@ public class PaperListForm extends JFrame {
         @Override
         public Object getCellEditorValue() {
             return "";
-        }
-    }
-
-    // ---------- A button that always paints its own background, regardless of L&F ----------
-
-    private static class RoundedButton extends JButton {
-        private final Color bgColor;
-        private final int arc;
-
-        RoundedButton(String text, Color bg, Color fg, int arc) {
-            super(text);
-            this.bgColor = bg;
-            this.arc = arc;
-            setForeground(fg);
-            setContentAreaFilled(false);
-            setBorderPainted(false);
-            setFocusPainted(false);
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(bgColor);
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
-            g2.dispose();
-            super.paintComponent(g);
-        }
-    }
-
-    // ---------- Small vector icons drawn with Graphics2D (no font dependency) ----------
-
-    private static class VectorIcon implements Icon {
-        private final String type;
-        private final int size;
-        private final Color color;
-
-        VectorIcon(String type, int size, Color color) {
-            this.type = type;
-            this.size = size;
-            this.color = color;
-        }
-
-        @Override
-        public int getIconWidth() { return size; }
-
-        @Override
-        public int getIconHeight() { return size; }
-
-        @Override
-        public void paintIcon(Component c, Graphics g, int x, int y) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(color);
-            g2.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            g2.translate(x, y);
-
-            switch (type) {
-                case "eye":
-                    g2.draw(new Ellipse2D.Double(1, size * 0.28, size - 2, size * 0.44));
-                    g2.fill(new Ellipse2D.Double(size / 2.0 - 1.6, size / 2.0 - 1.6, 3.2, 3.2));
-                    break;
-                case "edit":
-                    g2.draw(new Line2D.Double(2, size - 2, size - 4, 3));
-                    Path2D tip = new Path2D.Double();
-                    tip.moveTo(size - 4, 3);
-                    tip.lineTo(size - 1, 4);
-                    tip.lineTo(size - 3, 6);
-                    tip.closePath();
-                    g2.fill(tip);
-                    break;
-                case "trash":
-                    g2.draw(new RoundRectangle2D.Double(3, 5, size - 6, size - 6, 2, 2));
-                    g2.draw(new Line2D.Double(1, 4, size - 1, 4));
-                    g2.draw(new RoundRectangle2D.Double(size / 2.0 - 3, 1, 6, 3, 1, 1));
-                    g2.draw(new Line2D.Double(size / 2.0 - 2, 8, size / 2.0 - 2, size - 4));
-                    g2.draw(new Line2D.Double(size / 2.0 + 2, 8, size / 2.0 + 2, size - 4));
-                    break;
-                case "list":
-                    for (int i = 0; i < 3; i++) {
-                        double lineY = 2 + i * (size / 3.0);
-                        g2.draw(new Line2D.Double(0, lineY, size, lineY));
-                    }
-                    break;
-                case "plus":
-                    g2.draw(new Line2D.Double(size / 2.0, 1, size / 2.0, size - 1));
-                    g2.draw(new Line2D.Double(1, size / 2.0, size - 1, size / 2.0));
-                    break;
-                case "search":
-                    double d = size * 0.65;
-                    g2.draw(new Ellipse2D.Double(0, 0, d, d));
-                    g2.draw(new Line2D.Double(d - 1, d - 1, size, size));
-                    break;
-                case "doc":
-                    g2.draw(new RoundRectangle2D.Double(2, 0, size - 4, size, 2, 2));
-                    for (int i = 0; i < 3; i++) {
-                        double lineY = size * 0.32 + i * (size * 0.2);
-                        g2.draw(new Line2D.Double(size * 0.32, lineY, size * 0.68, lineY));
-                    }
-                    break;
-                case "power":
-                    g2.draw(new Arc2D.Double(1, 1, size - 2, size - 2, 55, 250, Arc2D.OPEN));
-                    g2.draw(new Line2D.Double(size / 2.0, 0, size / 2.0, size / 2.0));
-                    break;
-                default:
-                    g2.draw(new Ellipse2D.Double(1, 1, size - 2, size - 2));
-            }
-            g2.dispose();
         }
     }
 }
