@@ -3,6 +3,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package com.mycompany.papermanager;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -32,18 +33,20 @@ public class PaperDetailsForm extends JDialog {
         addField(panel, gbc, row++, "Date Added:", paper.getDateAdded());
         addField(panel, gbc, row++, "PDF Attached:", paper.hasPdf() ? "Yes" : "No");
 
-        gbc.gridx = 0; gbc.gridy = row;
-        panel.add(new JLabel("Abstract:"), gbc);
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        panel.add(new JLabel("Keywords:"), gbc);
         JTextArea abstractArea = new JTextArea(
                 paper.getAbstractText() == null || paper.getAbstractText().isEmpty()
-                        ? "(no abstract provided)" : paper.getAbstractText());
+                ? "(no keywords provided)" : paper.getAbstractText());
         abstractArea.setLineWrap(true);
         abstractArea.setWrapStyleWord(true);
         abstractArea.setEditable(false);
         abstractArea.setBackground(panel.getBackground());
         gbc.gridy = row + 1;
         gbc.gridwidth = 2;
-        gbc.weightx = 1; gbc.weighty = 1;
+        gbc.weightx = 1;
+        gbc.weighty = 1;
         gbc.fill = GridBagConstraints.BOTH;
         panel.add(new JScrollPane(abstractArea), gbc);
 
@@ -58,13 +61,16 @@ public class PaperDetailsForm extends JDialog {
 
     private void addField(JPanel panel, GridBagConstraints gbc, int row, String label, String value) {
         gbc.gridwidth = 1;
-        gbc.weightx = 0; gbc.weighty = 0;
-        gbc.gridx = 0; gbc.gridy = row;
+        gbc.weightx = 0;
+        gbc.weighty = 0;
+        gbc.gridx = 0;
+        gbc.gridy = row;
         JLabel labelComp = new JLabel(label);
         labelComp.setFont(labelComp.getFont().deriveFont(Font.BOLD));
         panel.add(labelComp, gbc);
 
-        gbc.gridx = 1; gbc.gridy = row;
+        gbc.gridx = 1;
+        gbc.gridy = row;
         panel.add(new JLabel(value == null || value.isEmpty() ? "-" : value), gbc);
     }
 }
