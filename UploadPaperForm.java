@@ -5,104 +5,317 @@
 package com.mycompany.papermanager;
 
 import javax.swing.*;
+import javax.swing.border.*;
 import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.*;
 import java.io.File;
+import java.time.LocalDate;
 
 /**
  * Dialog used both for adding a new paper and editing an existing one.
  * If an existing Paper is passed in, the dialog behaves in "edit" mode.
+ *
+ * Note: the "Keywords" field on screen is stored in the same underlying
+ * Paper.abstractText slot used previously — no changes to Paper,
+ * PaperManager, or PaperController were needed to wire this up.
  */
 public class UploadPaperForm extends JDialog {
+
+    private static final Color ACCENT_BLUE = new Color(0x2F, 0x6F, 0xED);
+    private static final Color TEXT_DARK = new Color(0x1A, 0x22, 0x33);
+    private static final Color TEXT_MUTED = new Color(0x8A, 0x93, 0xA6);
+    private static final Color FIELD_BORDER = new Color(0xD8, 0xDC, 0xE4);
+    private static final Color PDF_RED = new Color(0xE5, 0x3E, 0x3E);
 
     private final PaperController controller;
     private final Paper existingPaper; // null when adding a new paper
 
-    private final JTextField titleField = new JTextField(30);
-    private final JTextField authorField = new JTextField(30);
-    private final JTextField yearField = new JTextField(10);
-    private final JTextField categoryField = new JTextField(20);
-    private final JTextArea abstractArea = new JTextArea(5, 30);
-    private final JLabel pdfLabel = new JLabel("No file selected");
+    private final PlaceholderField titleField = new PlaceholderField("Enter paper title");
+    private final PlaceholderField authorField = new PlaceholderField("Enter authors (comma separated)");
+    private final JComboBox<String> yearCombo = new JComboBox<>();
+    private final PlaceholderField categoryField = new PlaceholderField("Enter venue / journal / conference");
+    private final PlaceholderField keywordsField = new PlaceholderField("Enter keywords (comma separated)");
+    private final JLabel pdfLabel = new JLabel("No file chosen");
 
     private File selectedPdf; // newly chosen file, null if unchanged
 
     public UploadPaperForm(JFrame parent, PaperController controller, Paper existingPaper) {
-        super(parent, existingPaper == null ? "Add Paper" : "Edit Paper", true);
+        super(parent, true);
         this.controller = controller;
         this.existingPaper = existingPaper;
 
-        setSize(500, 450);
+        setUndecorated(true);
+        setSize(700, 500);
         setLocationRelativeTo(parent);
-        setLayout(new BorderLayout(10, 10));
-        buildForm();
+        setLayout(new BorderLayout());
+        ((JComponent) getContentPane()).setBorder(new LineBorder(new Color(0xDD, 0xDF, 0xE5), 1));
+
+        add(buildHeader(), BorderLayout.NORTH);
+        add(buildBody(), BorderLayout.CENTER);
+
         if (existingPaper != null) {
             populateFromExisting();
         }
     }
 
-    private void buildForm() {
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.anchor = GridBagConstraints.WEST;
+    // ---------- Header (custom colored bar with a working close button + drag-to-move) ----------
 
-        int row = 0;
-        addRow(formPanel, gbc, row++, "Title:*", titleField);
-        addRow(formPanel, gbc, row++, "Author:*", authorField);
-        addRow(formPanel, gbc, row++, "Year:", yearField);
-        addRow(formPanel, gbc, row++, "Venue:", categoryField);
-        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.NORTHWEST;
-        formPanel.add(new JLabel("Abstract:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row++;
-        abstractArea.setLineWrap(true);
-        abstractArea.setWrapStyleWord(true);
-        formPanel.add(new JScrollPane(abstractArea), gbc);
+    private JPanel buildHeader() {
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(ACCENT_BLUE);
+        header.setPreferredSize(new Dimension(0, 44));
+        header.setBorder(BorderFactory.createEmptyBorder(0, 18, 0, 10));
 
-        JButton choosePdfBtn = new JButton("Choose PDF...");
-        choosePdfBtn.addActionListener(e -> onChoosePdf());
-        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
-        formPanel.add(new JLabel("PDF File:"), gbc);
-        JPanel pdfPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        pdfPanel.add(choosePdfBtn);
-        pdfPanel.add(pdfLabel);
-        gbc.gridx = 1; gbc.gridy = row++;
-        formPanel.add(pdfPanel, gbc);
+        JLabel title = new JLabel(existingPaper == null ? "Add New Paper" : "Edit Paper");
+        title.setForeground(Color.WHITE);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 15));
 
-        JLabel requiredNote = new JLabel("* required fields");
-        requiredNote.setFont(requiredNote.getFont().deriveFont(Font.ITALIC, 11f));
-        gbc.gridx = 1; gbc.gridy = row++;
-        formPanel.add(requiredNote, gbc);
+        JButton closeBtn = new JButton("\u2715");
+        closeBtn.setForeground(Color.WHITE);
+        closeBtn.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        closeBtn.setContentAreaFilled(false);
+        closeBtn.setBorderPainted(false);
+        closeBtn.setFocusPainted(false);
+        closeBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        closeBtn.addActionListener(e -> dispose());
 
-        JButton saveBtn = new JButton(existingPaper == null ? "Add Paper" : "Save Changes");
-        JButton cancelBtn = new JButton("Cancel");
-        saveBtn.addActionListener(e -> onSave());
-        cancelBtn.addActionListener(e -> dispose());
+        header.add(title, BorderLayout.WEST);
+        header.add(closeBtn, BorderLayout.EAST);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.add(saveBtn);
-        buttonPanel.add(cancelBtn);
+        // allow dragging the undecorated dialog by its header bar
+        MouseAdapter dragHandler = new MouseAdapter() {
+            private Point dragStart;
 
-        add(formPanel, BorderLayout.CENTER);
-        add(buttonPanel, BorderLayout.SOUTH);
+            @Override
+            public void mousePressed(MouseEvent e) {
+                dragStart = e.getPoint();
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                Point loc = getLocation();
+                setLocation(loc.x + e.getX() - dragStart.x, loc.y + e.getY() - dragStart.y);
+            }
+        };
+        header.addMouseListener(dragHandler);
+        header.addMouseMotionListener(dragHandler);
+
+        return header;
     }
 
-    private void addRow(JPanel panel, GridBagConstraints gbc, int row, String label, JComponent field) {
-        gbc.gridx = 0; gbc.gridy = row;
-        panel.add(new JLabel(label), gbc);
-        gbc.gridx = 1; gbc.gridy = row;
-        panel.add(field, gbc);
+    // ---------- Body ----------
+
+    private JScrollPane buildBody() {
+        JPanel body = new JPanel(new BorderLayout(24, 0));
+        body.setBackground(Color.WHITE);
+        body.setBorder(BorderFactory.createEmptyBorder(20, 28, 20, 28));
+
+        JPanel formColumn = new JPanel();
+        formColumn.setLayout(new BoxLayout(formColumn, BoxLayout.Y_AXIS));
+        formColumn.setBackground(Color.WHITE);
+
+        JLabel subtitle = new JLabel("Upload Paper");
+        subtitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        subtitle.setForeground(TEXT_DARK);
+        subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        formColumn.add(subtitle);
+        formColumn.add(Box.createVerticalStrut(16));
+
+        setupYearCombo();
+
+        formColumn.add(fieldBlock("Title", true, titleField));
+        formColumn.add(fieldBlock("Authors", true, authorField));
+        formColumn.add(fieldBlock("Published Year", true, yearCombo));
+        formColumn.add(fieldBlock("Venue", true, categoryField));
+        formColumn.add(fieldBlock("Keywords", false, keywordsField));
+        formColumn.add(fieldBlock("PDF File", true, buildPdfRow()));
+
+        formColumn.add(Box.createVerticalStrut(10));
+        formColumn.add(buildButtonRow());
+
+        body.add(formColumn, BorderLayout.CENTER);
+        body.add(buildPdfGraphic(), BorderLayout.EAST);
+
+        JScrollPane scroll = new JScrollPane(body);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getVerticalScrollBar().setUnitIncrement(14);
+        return scroll;
     }
+
+    private void setupYearCombo() {
+        int current = LocalDate.now().getYear();
+        for (int y = current + 1; y >= current - 30; y--) {
+            yearCombo.addItem(String.valueOf(y));
+        }
+        yearCombo.setSelectedItem(String.valueOf(current));
+        yearCombo.setBackground(Color.WHITE);
+        yearCombo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    }
+
+    private JPanel fieldBlock(String labelText, boolean required, JComponent field) {
+        JPanel block = new JPanel();
+        block.setLayout(new BoxLayout(block, BoxLayout.Y_AXIS));
+        block.setBackground(Color.WHITE);
+        block.setAlignmentX(Component.LEFT_ALIGNMENT);
+        block.setBorder(BorderFactory.createEmptyBorder(0, 0, 12, 0));
+
+        JLabel label = new JLabel(labelText + (required ? " *" : ""));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        label.setForeground(required ? TEXT_DARK : TEXT_MUTED);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        if (field instanceof JTextField || field instanceof JComboBox) {
+            field.setBorder(new CompoundBorder(
+                    new LineBorder(FIELD_BORDER, 1, true),
+                    BorderFactory.createEmptyBorder(6, 10, 6, 10)));
+        }
+
+        block.add(label);
+        block.add(Box.createVerticalStrut(6));
+        block.add(field);
+        return block;
+    }
+
+    private JPanel buildPdfRow() {
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        row.setBackground(Color.WHITE);
+
+        JButton chooseBtn = new JButton("Choose File");
+        chooseBtn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        chooseBtn.setFocusPainted(false);
+        chooseBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        chooseBtn.addActionListener(e -> onChoosePdf());
+
+        pdfLabel.setForeground(TEXT_MUTED);
+        pdfLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+
+        row.add(chooseBtn);
+        row.add(pdfLabel);
+
+        JPanel wrapper = new JPanel();
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+        wrapper.setBackground(Color.WHITE);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        wrapper.add(row);
+
+        JLabel hint = new JLabel("(Only PDF files are allowed)");
+        hint.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        hint.setForeground(TEXT_MUTED);
+        hint.setAlignmentX(Component.LEFT_ALIGNMENT);
+        hint.setBorder(BorderFactory.createEmptyBorder(4, 2, 0, 0));
+        wrapper.add(hint);
+
+        return wrapper;
+    }
+
+    private JPanel buildButtonRow() {
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        row.setBackground(Color.WHITE);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JButton clearBtn = new JButton("Clear");
+        clearBtn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        clearBtn.setFocusPainted(false);
+        clearBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        clearBtn.addActionListener(e -> clearForm());
+
+        RoundedButton uploadBtn = new RoundedButton(
+                existingPaper == null ? "\u2191  Upload" : "Save Changes",
+                ACCENT_BLUE, Color.WHITE, 6);
+        uploadBtn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        uploadBtn.setBorder(BorderFactory.createEmptyBorder(9, 22, 9, 22));
+        uploadBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        uploadBtn.addActionListener(e -> onSave());
+
+        row.add(clearBtn);
+        row.add(uploadBtn);
+        return row;
+    }
+
+    private JComponent buildPdfGraphic() {
+        JComponent graphic = new JComponent() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int w = 110, h = 140, x = (getWidth() - w) / 2, y = 30;
+                int fold = 22;
+
+                Path2D page = new Path2D.Double();
+                page.moveTo(x, y);
+                page.lineTo(x + w - fold, y);
+                page.lineTo(x + w, y + fold);
+                page.lineTo(x + w, y + h);
+                page.lineTo(x, y + h);
+                page.closePath();
+                g2.setColor(new Color(0xF7, 0xF8, 0xFA));
+                g2.fill(page);
+                g2.setColor(new Color(0xC9, 0xCE, 0xD8));
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.draw(page);
+
+                Path2D foldTri = new Path2D.Double();
+                foldTri.moveTo(x + w - fold, y);
+                foldTri.lineTo(x + w, y + fold);
+                foldTri.lineTo(x + w - fold, y + fold);
+                foldTri.closePath();
+                g2.setColor(new Color(0xE3, 0xE6, 0xEC));
+                g2.fill(foldTri);
+
+                int badgeW = 76, badgeH = 28;
+                int badgeX = x + (w - badgeW) / 2, badgeY = y + 55;
+                g2.setColor(PDF_RED);
+                g2.fill(new RoundRectangle2D.Double(badgeX, badgeY, badgeW, badgeH, 4, 4));
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
+                FontMetrics fm = g2.getFontMetrics();
+                String label = "PDF";
+                int textX = badgeX + (badgeW - fm.stringWidth(label)) / 2;
+                int textY = badgeY + (badgeH + fm.getAscent()) / 2 - 2;
+                g2.drawString(label, textX, textY);
+
+                for (int i = 0; i < 3; i++) {
+                    int lineY = y + h - 24 + i * 7;
+                    g2.setColor(new Color(0xE3, 0xE6, 0xEC));
+                    g2.drawLine(x + 14, lineY, x + w - 14 - (i * 12), lineY);
+                }
+
+                g2.dispose();
+            }
+        };
+        graphic.setPreferredSize(new Dimension(180, 220));
+        return graphic;
+    }
+
+    // ---------- Data binding ----------
 
     private void populateFromExisting() {
         titleField.setText(existingPaper.getTitle());
         authorField.setText(existingPaper.getAuthor());
-        yearField.setText(existingPaper.getYear());
+        if (existingPaper.getYear() != null && !existingPaper.getYear().isEmpty()) {
+            yearCombo.setSelectedItem(existingPaper.getYear());
+        }
         categoryField.setText(existingPaper.getCategory());
-        abstractArea.setText(existingPaper.getAbstractText());
+        keywordsField.setText(existingPaper.getAbstractText());
         if (existingPaper.hasPdf()) {
             pdfLabel.setText(new File(existingPaper.getPdfPath()).getName());
+            pdfLabel.setForeground(TEXT_DARK);
         }
+    }
+
+    private void clearForm() {
+        titleField.setText("");
+        authorField.setText("");
+        categoryField.setText("");
+        keywordsField.setText("");
+        yearCombo.setSelectedItem(String.valueOf(LocalDate.now().getYear()));
+        selectedPdf = null;
+        pdfLabel.setText("No file chosen");
+        pdfLabel.setForeground(TEXT_MUTED);
     }
 
     private void onChoosePdf() {
@@ -112,21 +325,22 @@ public class UploadPaperForm extends JDialog {
         if (result == JFileChooser.APPROVE_OPTION) {
             selectedPdf = chooser.getSelectedFile();
             pdfLabel.setText(selectedPdf.getName());
+            pdfLabel.setForeground(TEXT_DARK);
         }
     }
 
     private void onSave() {
         String title = titleField.getText();
         String author = authorField.getText();
-        String year = yearField.getText();
+        String year = (String) yearCombo.getSelectedItem();
         String category = categoryField.getText();
-        String abstractText = abstractArea.getText();
+        String keywords = keywordsField.getText();
 
         String error;
         if (existingPaper == null) {
-            error = controller.addPaper(title, author, year, category, abstractText, selectedPdf);
+            error = controller.addPaper(title, author, year, category, keywords, selectedPdf);
         } else {
-            error = controller.editPaper(existingPaper.getId(), title, author, year, category, abstractText, selectedPdf);
+            error = controller.editPaper(existingPaper.getId(), title, author, year, category, keywords, selectedPdf);
         }
 
         if (error != null) {
@@ -138,5 +352,59 @@ public class UploadPaperForm extends JDialog {
                 existingPaper == null ? "Paper added successfully." : "Paper updated successfully.",
                 "Success", JOptionPane.INFORMATION_MESSAGE);
         dispose();
+    }
+
+    // ---------- Helper components ----------
+
+    /** A JTextField that shows light gray hint text when empty and unfocused. */
+    private static class PlaceholderField extends JTextField {
+        private final String placeholder;
+
+        PlaceholderField(String placeholder) {
+            this.placeholder = placeholder;
+            setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            if (getText().isEmpty() && !isFocusOwner()) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(TEXT_MUTED);
+                g2.setFont(getFont());
+                Insets ins = getInsets();
+                FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(placeholder, ins.left, ins.top + fm.getAscent());
+                g2.dispose();
+            }
+        }
+    }
+
+    /** A button that always paints its own background, regardless of L&F. */
+    private static class RoundedButton extends JButton {
+        private final Color bgColor;
+        private final int arc;
+
+        RoundedButton(String text, Color bg, Color fg, int arc) {
+            super(text);
+            this.bgColor = bg;
+            this.arc = arc;
+            setForeground(fg);
+            setContentAreaFilled(false);
+            setBorderPainted(false);
+            setFocusPainted(false);
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(bgColor);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
+            g2.dispose();
+            super.paintComponent(g);
+        }
     }
 }
