@@ -30,11 +30,12 @@ public class PaperController {
 
     /** Returns null on success, or an error message on validation/IO failure. */
     public String addPaper(String title, String author, String year, String category,
-                            String abstractText, File pdf) {
+                            String keywords, String abstractText, File pdf) {
         String error = validate(title, author);
         if (error != null) return error;
         try {
-            manager.addPaper(title.trim(), author.trim(), safe(year), safe(category), safe(abstractText), pdf);
+            manager.addPaper(title.trim(), author.trim(), safe(year), safe(category),
+                    safe(keywords), safe(abstractText), pdf);
             return null;
         } catch (IOException e) {
             return "Failed to save PDF file: " + e.getMessage();
@@ -43,11 +44,12 @@ public class PaperController {
 
     /** Returns null on success, or an error message on validation/IO failure. */
     public String editPaper(int id, String title, String author, String year, String category,
-                             String abstractText, File pdf) {
+                             String keywords, String abstractText, File pdf) {
         String error = validate(title, author);
         if (error != null) return error;
         try {
-            boolean ok = manager.editPaper(id, title.trim(), author.trim(), safe(year), safe(category), safe(abstractText), pdf);
+            boolean ok = manager.editPaper(id, title.trim(), author.trim(), safe(year), safe(category),
+                    safe(keywords), safe(abstractText), pdf);
             return ok ? null : "Paper not found (it may have been deleted).";
         } catch (IOException e) {
             return "Failed to save PDF file: " + e.getMessage();
