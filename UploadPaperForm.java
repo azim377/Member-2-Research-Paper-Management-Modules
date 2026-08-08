@@ -15,10 +15,6 @@ import java.time.LocalDate;
 /**
  * Dialog used both for adding a new paper and editing an existing one.
  * If an existing Paper is passed in, the dialog behaves in "edit" mode.
- *
- * Note: the "Keywords" field on screen is stored in the same underlying
- * Paper.abstractText slot used previously — no changes to Paper,
- * PaperManager, or PaperController were needed to wire this up.
  */
 public class UploadPaperForm extends JDialog {
 
@@ -36,6 +32,7 @@ public class UploadPaperForm extends JDialog {
     private final JComboBox<String> yearCombo = new JComboBox<>();
     private final PlaceholderField categoryField = new PlaceholderField("Enter venue / journal / conference");
     private final PlaceholderField keywordsField = new PlaceholderField("Enter keywords (comma separated)");
+    private final JTextArea abstractArea = new JTextArea(3, 20);
     private final JLabel pdfLabel = new JLabel("No file chosen");
 
     private File selectedPdf; // newly chosen file, null if unchanged
@@ -46,7 +43,7 @@ public class UploadPaperForm extends JDialog {
         this.existingPaper = existingPaper;
 
         setUndecorated(true);
-        setSize(700, 500);
+        setSize(700, 600);
         setLocationRelativeTo(parent);
         setLayout(new BorderLayout());
         ((JComponent) getContentPane()).setBorder(new LineBorder(new Color(0xDD, 0xDF, 0xE5), 1));
@@ -83,7 +80,6 @@ public class UploadPaperForm extends JDialog {
         header.add(title, BorderLayout.WEST);
         header.add(closeBtn, BorderLayout.EAST);
 
-        // allow dragging the undecorated dialog by its header bar
         MouseAdapter dragHandler = new MouseAdapter() {
             private Point dragStart;
 
@@ -124,11 +120,19 @@ public class UploadPaperForm extends JDialog {
 
         setupYearCombo();
 
+        abstractArea.setLineWrap(true);
+        abstractArea.setWrapStyleWord(true);
+        abstractArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        JScrollPane abstractScroll = new JScrollPane(abstractArea);
+        abstractScroll.setBorder(new LineBorder(FIELD_BORDER, 1, true));
+        abstractScroll.setPreferredSize(new Dimension(0, 70));
+
         formColumn.add(fieldBlock("Title", true, titleField));
         formColumn.add(fieldBlock("Authors", true, authorField));
         formColumn.add(fieldBlock("Published Year", true, yearCombo));
         formColumn.add(fieldBlock("Venue", true, categoryField));
         formColumn.add(fieldBlock("Keywords", false, keywordsField));
+        formColumn.add(fieldBlockFixed("Abstract", false, abstractScroll, 70));
         formColumn.add(fieldBlock("PDF File", true, buildPdfRow()));
 
         formColumn.add(Box.createVerticalStrut(10));
@@ -172,6 +176,27 @@ public class UploadPaperForm extends JDialog {
                     new LineBorder(FIELD_BORDER, 1, true),
                     BorderFactory.createEmptyBorder(6, 10, 6, 10)));
         }
+
+        block.add(label);
+        block.add(Box.createVerticalStrut(6));
+        block.add(field);
+        return block;
+    }
+
+    private JPanel fieldBlockFixed(String labelText, boolean required, JComponent field, int height) {
+        JPanel block = new JPanel();
+        block.setLayout(new BoxLayout(block, BoxLayout.Y_AXIS));
+        block.setBackground(Color.WHITE);
+        block.setAlignmentX(Component.LEFT_ALIGNMENT);
+        block.setBorder(BorderFactory.createEmptyBorder(0, 0, 12, 0));
+
+        JLabel label = new JLabel(labelText + (required ? " *" : ""));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        label.setForeground(required ? TEXT_DARK : TEXT_MUTED);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
 
         block.add(label);
         block.add(Box.createVerticalStrut(6));
@@ -300,7 +325,8 @@ public class UploadPaperForm extends JDialog {
             yearCombo.setSelectedItem(existingPaper.getYear());
         }
         categoryField.setText(existingPaper.getCategory());
-        keywordsField.setText(existingPaper.getAbstractText());
+        keywordsField.setText(existingPaper.getKeywords());
+        abstractArea.setText(existingPaper.getAbstractText());
         if (existingPaper.hasPdf()) {
             pdfLabel.setText(new File(existingPaper.getPdfPath()).getName());
             pdfLabel.setForeground(TEXT_DARK);
@@ -312,6 +338,7 @@ public class UploadPaperForm extends JDialog {
         authorField.setText("");
         categoryField.setText("");
         keywordsField.setText("");
+        abstractArea.setText("");
         yearCombo.setSelectedItem(String.valueOf(LocalDate.now().getYear()));
         selectedPdf = null;
         pdfLabel.setText("No file chosen");
@@ -335,12 +362,13 @@ public class UploadPaperForm extends JDialog {
         String year = (String) yearCombo.getSelectedItem();
         String category = categoryField.getText();
         String keywords = keywordsField.getText();
+        String abstractText = abstractArea.getText();
 
         String error;
         if (existingPaper == null) {
-            error = controller.addPaper(title, author, year, category, keywords, selectedPdf);
+            error = controller.addPaper(title, author, year, category, keywords, abstractText, selectedPdf);
         } else {
-            error = controller.editPaper(existingPaper.getId(), title, author, year, category, keywords, selectedPdf);
+            error = controller.editPaper(existingPaper.getId(), title, author, year, category, keywords, abstractText, selectedPdf);
         }
 
         if (error != null) {
@@ -356,7 +384,6 @@ public class UploadPaperForm extends JDialog {
 
     // ---------- Helper components ----------
 
-    /** A JTextField that shows light gray hint text when empty and unfocused. */
     private static class PlaceholderField extends JTextField {
         private final String placeholder;
 
@@ -381,7 +408,6 @@ public class UploadPaperForm extends JDialog {
         }
     }
 
-    /** A button that always paints its own background, regardless of L&F. */
     private static class RoundedButton extends JButton {
         private final Color bgColor;
         private final int arc;
