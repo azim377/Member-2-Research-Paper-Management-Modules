@@ -2,7 +2,6 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  */
 package com.mycompany.papermanager;
-
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
